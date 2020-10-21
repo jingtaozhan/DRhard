@@ -1,1 +1,9 @@
 # LearningToRetrieve
+
+Ranking has always been one of the top concerns in information retrieval research. For decades, lexical matching signal has dominated the ad-hoc retrieval process, but it also has inherent defects, such as the vocabulary mismatch problem. 
+Recently, Dense Retrieval (DR) technique has been proposed to alleviate these limitations by capturing the deep semantic relationship between queries and documents. The training of most existing Dense Retrieval models relies on sampling negative instances from the corpus to optimize a pairwise loss function. Through investigation, we find that this kind of training strategy is biased and fails to optimize full retrieval performance effectively and efficiently. 
+To solve this problem, we propose a Learning To Retrieve (LTRe) training technique. LTRe constructs the document index beforehand. At each training iteration, it performs full retrieval without negative sampling and then updates the query representation model parameters. Through this process, it teaches the DR model how to retrieve relevant documents from the entire corpus instead of how to rerank a potentially biased sample of documents. 
+Experiments in both passage retrieval and document retrieval tasks show that: 1) in terms of effectiveness, LTRe significantly outperforms all competitive sparse and dense baselines. It even gains better performance than the BM25-BERT cascade system under reasonable latency constraints. 2) in terms of training efficiency, compared with the previous state-of-the-art DR method, LTRe provides more than 170x speed-up in the training process. Training with a compressed index further saves computing resources with minor performance loss.
+
+For more details, checkout our paper:
++ Zhan et al.  [Learning To Retrieve: How to Train a Dense Retrieval Model Effectively and Efficiently.](https://arxiv.org/abs/2010.10469)
