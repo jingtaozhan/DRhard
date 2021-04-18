@@ -134,7 +134,7 @@ def compute_metrics(qids_to_relevant_passageids, qids_to_ranked_candidate_passag
         raise IOError("No matching QIDs found. Are you sure you are scoring the evaluation set?")
     
     MRR = MRR/len(qids_to_relevant_passageids)
-    all_scores['MRR @10'] = MRR
+    all_scores[f'MRR @{MaxMRRRank}'] = MRR
     all_scores['QueriesRanked'] = len(qids_to_ranked_candidate_passages)
     return all_scores
                 
@@ -168,9 +168,12 @@ def main():
     python msmarco_eval_ranking.py <path_to_reference_file> <path_to_candidate_file>
     """
     print("Eval Started")
-    if len(sys.argv) == 3:
+    if len(sys.argv) in [3,4] :
         path_to_reference = sys.argv[1]
         path_to_candidate = sys.argv[2]
+        if len(sys.argv) == 4:
+            global MaxMRRRank
+            MaxMRRRank = int(sys.argv[3])
         metrics = compute_metrics_from_files(path_to_reference, path_to_candidate)
         print('#####################')
         for metric in sorted(metrics):
@@ -178,7 +181,7 @@ def main():
         print('#####################')
 
     else:
-        print('Usage: msmarco_eval_ranking.py <reference ranking> <candidate ranking>')
+        print('Usage: msmarco_eval_ranking.py <reference ranking> <candidate ranking> [MaxMRRRank]')
         exit()
     
 if __name__ == '__main__':
