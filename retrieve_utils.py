@@ -52,7 +52,7 @@ def convert_index_to_gpu(index, faiss_gpu_index, useFloat16=False):
         faiss_gpu_index = faiss_gpu_index[0]
     if isinstance(faiss_gpu_index, int):
         res = faiss.StandardGpuResources()
-        res.setTempMemory(1024*1024*1024)
+        res.setTempMemory(512*1024*1024)
         co = faiss.GpuClonerOptions()
         co.useFloat16 = useFloat16
         index = faiss.index_cpu_to_gpu(res, faiss_gpu_index, index, co)
@@ -62,7 +62,7 @@ def convert_index_to_gpu(index, faiss_gpu_index, useFloat16=False):
             import torch
             for i in range(torch.cuda.device_count()):
                 res = faiss.StandardGpuResources()
-                res.setTempMemory(1024*1024*1024)
+                res.setTempMemory(256*1024*1024)
                 gpu_resources.append(res)
 
         assert isinstance(faiss_gpu_index, list)

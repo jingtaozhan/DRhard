@@ -63,6 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_seq_length", type=int, default=64)
     parser.add_argument("--pergpu_eval_batch_size", type=int, default=32)
     parser.add_argument("--no_cuda", action='store_true')
+    parser.add_argument("--faiss_gpus", type=int, default=None, nargs="+")
     args = parser.parse_args()
     logger.info(args)
 
@@ -89,10 +90,14 @@ if __name__ == "__main__":
 
     query_embeddings = np.memmap(args.qmemmap_path, 
         dtype=np.float32, mode="r").reshape(-1, model.output_embedding_size)
+    model = None
+    torch.cuda.empty_cache()
 
     index = construct_flatindex_from_embeddings(doc_embeddings, None)
-    # index = convert_index_to_gpu(index, [0,1,2,3], False)
-    faiss.omp_set_num_threads(32)
+    if args.faiss_gpus:
+        index = convert_index_to_gpu(index, args.faiss_gpus, False)
+    else:
+        faiss.omp_set_num_threads(32)
     nearest_neighbors = index_retrieve(index, query_embeddings, args.topk, batch=32)
     output_rank_file = os.path.join(args.output_dir, f"{args.mode}.rank.tsv")
     with open(output_rank_file, 'w') as outputfile:

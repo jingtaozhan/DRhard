@@ -104,6 +104,7 @@ def main():
     parser.add_argument("--mode", type=str, choices=["train", "dev", "test", "lead"], required=True)
     parser.add_argument("--topk", type=int, default=100)
     parser.add_argument("--no_cuda", action="store_true")
+    parser.add_argument("--faiss_gpus", type=int, default=None, nargs="+")
     args = parser.parse_args()
 
     args.device = torch.device(
@@ -144,8 +145,10 @@ def main():
         dtype=np.int32, mode="r")
 
     index = construct_flatindex_from_embeddings(doc_embeddings, doc_ids)
-    # index = convert_index_to_gpu(index, [0,1,2,3], False)
-    faiss.omp_set_num_threads(32)
+    if args.faiss_gpus:
+        index = convert_index_to_gpu(index, args.faiss_gpus, False)
+    else:
+        faiss.omp_set_num_threads(32)
     nearest_neighbors = index_retrieve(index, query_embeddings, args.topk, batch=32)
 
     with open(args.output_rank_file, 'w') as outputfile:
