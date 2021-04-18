@@ -1,9 +1,49 @@
-# LearningToRetrieve
-
-Ranking has always been one of the top concerns in information retrieval research. For decades, lexical matching signal has dominated the ad-hoc retrieval process, but it also has inherent defects, such as the vocabulary mismatch problem. 
-Recently, Dense Retrieval (DR) technique has been proposed to alleviate these limitations by capturing the deep semantic relationship between queries and documents. The training of most existing Dense Retrieval models relies on sampling negative instances from the corpus to optimize a pairwise loss function. Through investigation, we find that this kind of training strategy is biased and fails to optimize full retrieval performance effectively and efficiently. 
-To solve this problem, we propose a Learning To Retrieve (LTRe) training technique. LTRe constructs the document index beforehand. At each training iteration, it performs full retrieval without negative sampling and then updates the query representation model parameters. Through this process, it teaches the DR model how to retrieve relevant documents from the entire corpus instead of how to rerank a potentially biased sample of documents. 
-Experiments in both passage retrieval and document retrieval tasks show that: 1) in terms of effectiveness, LTRe significantly outperforms all competitive sparse and dense baselines. It even gains better performance than the BM25-BERT cascade system under reasonable latency constraints. 2) in terms of training efficiency, compared with the previous state-of-the-art DR method, LTRe provides more than 170x speed-up in the training process. Training with a compressed index further saves computing resources with minor performance loss.
-
-For more details, checkout our paper:
+A previous version of our paper is:
 + Zhan et al.  [Learning To Retrieve: How to Train a Dense Retrieval Model Effectively and Efficiently.](https://arxiv.org/abs/2010.10469)
+
+If you find this github or our paper helpful, please consider citing us:
+
+## Retrieval Results
+Coming soon
+
+## Trained Models
+Coming soon
+
+## Data Preprocess
+Prepare the datasets from TREC DL Track. The following presents an example about the passage dataset. 
+```bash
+mkdir data
+mkdir data/passage
+mkdir data/passage/dataset
+cd data/passage/dataset
+wget https://msmarco.blob.core.windows.net/msmarcoranking/collectionandqueries.tar.gz
+tar xvfz collectionandqueries.tar.gz -C ./
+wget https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz
+gzip -d ./msmarco-test2019-queries.tsv.gz 
+```
+The document dataset can be similarly acquired and should be extracted at `data/doc/dataset`.
+
+You need to set up a new environment with `transformers==2.8.0` to tokenize the text. This is because we find the tokenizer behaves differently among versions 2, 3 and 4. To replicate the results in our paper with our provided trained models, it is necessary to use version 2.8.0 for preprocessing. Otherwise, you may need to re-train the DR models. 
+
+Run the following codes.
+```bash
+python preprocess.py --data_type 0; python preprocess.py --data_type 1
+```
+
+## Inference
+With our provided trained models, you can easily replicate our reported experimental results.
+
+```bash
+python ./star/inference.py --data_type passage --max_doc_length 256 --mode dev   
+python ./msmarco_eval.py ./data/passage/preprocess/dev-qrel.tsv ./data/passage/evaluate/star/dev.rank.tsv
+```
+
+```bash
+python ./adore/inference.py --model_dir ./data/passage/trained_models/adore-star --output_dir ./data/passage/evaluate/adore-star --preprocess_dir ./data/passage/preprocess --mode dev --dmemmap_path ./data/passage/evaluate/star/passages.memmap
+python ./msmarco_eval.py ./data/passage/preprocess/dev-qrel.tsv ./data/passage/evaluate/adore-star/dev.rank.tsv
+```
+
+```bash
+python ./cvt_back.py --input_dir ./data/passage/evaluate/star/ --preprocess_dir ./data/passage/preprocess --output_dir ./data/passage/offcial_runs/star --mode dev
+python ./msmarco_eval.py ./data/passage/dataset/qrels.dev.small.tsv ./data/passage/offcial_runs/star/dev.rank.tsv
+```
