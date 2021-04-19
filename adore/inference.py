@@ -71,8 +71,8 @@ if __name__ == "__main__":
     os.makedirs(args.output_dir, exist_ok=True)
     # Setup CUDA, GPU 
     args.use_gpu = torch.cuda.is_available() and not args.no_cuda
-    args.model_device = torch.device(f"cuda" if args.use_gpu else "cpu")
-    args.n_gpu = torch.cuda.device_count()
+    args.model_device = torch.device(f"cuda:0" if args.use_gpu else "cpu")
+    args.n_gpu = 1
 
     # Setup logging
     logger.warning("Model Device: %s, n_gpu: %s", args.model_device, args.n_gpu)
