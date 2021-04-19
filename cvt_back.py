@@ -9,6 +9,7 @@ if __name__ == "__main__":
     parser.add_argument("--preprocess_dir", type=str, required=True)
     parser.add_argument("--mode", type=str, choices=["train", "dev", "test", "lead"], required=True)
     parser.add_argument("--output_dir", type=str, required=True)
+    parser.add_argument("--dataset", type=str, choices=["passage", "doc"], required=True)
     args = parser.parse_args()
 
     input_path = os.path.join(args.input_dir, f"{args.mode}.rank.tsv")
@@ -26,4 +27,7 @@ if __name__ == "__main__":
             qid, pid, rank = line.split()
             qid, pid, rank = int(qid), int(pid), int(rank)
             qid, pid = offset2qid[qid], offset2pid[pid]
-            output.write(f"{qid}\t{pid}\t{rank}\n")
+            if args.dataset == "doc":
+                output.write(f"{qid}\tD{pid}\t{rank}\n")
+            else:
+                output.write(f"{qid}\t{pid}\t{rank}\n")

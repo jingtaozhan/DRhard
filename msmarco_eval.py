@@ -9,12 +9,16 @@ Creation Date : 06/12/2018
 Last Modified : 1/21/2019
 Authors : Daniel Campos <dacamp@microsoft.com>, Rutger van Haasteren <ruvanh@microsoft.com>
 """
+"""
+I (Jingtao Zhan) modified this script for evaluating MSMARCO Doc dataset. --- 4/19/2021
+"""
 import sys
 import statistics
 
 from collections import Counter
 
 MaxMRRRank = 10
+EVAL_DOC = False
 
 def load_reference_from_stream(f):
     """Load Reference reference relevant passages
@@ -24,13 +28,20 @@ def load_reference_from_stream(f):
     qids_to_relevant_passageids = {}
     for l in f:
         try:
-            l = l.strip().split('\t')
+            if EVAL_DOC:
+                l = l.strip().split(' ')
+            else:
+                l = l.strip().split('\t')
             qid = int(l[0])
             if qid in qids_to_relevant_passageids:
                 pass
             else:
                 qids_to_relevant_passageids[qid] = []
-            qids_to_relevant_passageids[qid].append(int(l[2]))
+            if EVAL_DOC:
+                assert l[2][0] == "D"
+                qids_to_relevant_passageids[qid].append(int(l[2][1:]))
+            else:
+                qids_to_relevant_passageids[qid].append(int(l[2]))
         except:
             raise IOError('\"%s\" is not valid format' % l)
     return qids_to_relevant_passageids
@@ -54,7 +65,11 @@ def load_candidate_from_stream(f):
         try:
             l = l.strip().split('\t')
             qid = int(l[0])
-            pid = int(l[1])
+            if EVAL_DOC:
+                assert l[1][0] == "D"
+                pid = int(l[1][1:])
+            else:
+                pid = int(l[1])
             rank = int(l[2])
             if qid in qid_to_ranked_candidate_passages:
                 pass    
@@ -173,7 +188,11 @@ def main():
         path_to_candidate = sys.argv[2]
         if len(sys.argv) == 4:
             global MaxMRRRank
-            MaxMRRRank = int(sys.argv[3])
+            if sys.argv[3] == "doc":
+                global EVAL_DOC
+                MaxMRRRank, EVAL_DOC = 100, True
+            else:
+                MaxMRRRank = int(sys.argv[3])
         metrics = compute_metrics_from_files(path_to_reference, path_to_candidate)
         print('#####################')
         for metric in sorted(metrics):
@@ -181,7 +200,7 @@ def main():
         print('#####################')
 
     else:
-        print('Usage: msmarco_eval_ranking.py <reference ranking> <candidate ranking> [MaxMRRRank]')
+        print('Usage: msmarco_eval_ranking.py <reference ranking> <candidate ranking> [MaxMRRRank or DocEval]')
         exit()
     
 if __name__ == '__main__':
