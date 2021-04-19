@@ -5,7 +5,11 @@ from torch._C import dtype
 sys.path += ['./']
 import torch
 from torch import nn
-from transformers.modeling_roberta import RobertaPreTrainedModel
+import transformers
+if int(transformers.__version__[0]) <=3:
+    from transformers.modeling_roberta import RobertaPreTrainedModel
+else:
+    from transformers.models.roberta.modeling_roberta import RobertaPreTrainedModel
 from transformers import RobertaModel
 import torch.nn.functional as F
 from torch.cuda.amp import autocast
@@ -77,6 +81,8 @@ class RobertaDot(BaseModelDot, RobertaPreTrainedModel):
     def __init__(self, config, model_argobj=None):
         BaseModelDot.__init__(self, model_argobj)
         RobertaPreTrainedModel.__init__(self, config)
+        if int(transformers.__version__[0]) ==4 :
+            config.return_dict = False
         self.roberta = RobertaModel(config, add_pooling_layer=False)
         if hasattr(config, "output_embedding_size"):
             self.output_embedding_size = config.output_embedding_size
