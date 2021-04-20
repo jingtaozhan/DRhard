@@ -19,7 +19,7 @@ Therefore, we propose two training strategies named a Stable Training Algorithm 
 | STAR     | 0.340 | 0.867 | 0.642 | [Model](https://drive.google.com/drive/folders/1bJw8P15cFiV239mTgFQxVilXMWqzqXUU?usp=sharing) [Train](https://drive.google.com/file/d/1FRFTsqmU95IQHYHJ_q5SDCWVnxbWlIXi/view?usp=sharing) [Dev](https://drive.google.com/file/d/1QkPYmpvI3PX3vWZEO4zsEcoxLipIEsHA/view?usp=sharing) [TRECTest](https://drive.google.com/file/d/1VBPJKKrkZw7RAS5gUJX--lb6Qsu-72D8/view?usp=sharing) |
 | ADORE (Inbatch-Neg) | 0.316 | 0.860 | 0.658 | [Model](https://drive.google.com/drive/folders/1Kuwnit7SBoMVZ6s2Mz9RAORQlYU6zG8K?usp=sharing) |
 | ADORE (Rand-Neg) | 0.326 | 0.865 | 0.661 | [Model](https://drive.google.com/drive/folders/1U8Nq_LLyVZPh26_ldnSAvsYNk7g43IkE?usp=sharing) |
-| ADORE (STAR) | 0.347 | 0.876 | 0.683 | [Model](https://drive.google.com/drive/folders/1C1GQGfI4UHg99rfRcPYzQxlGZXvtsDfm?usp=sharing) [Train](https://drive.google.com/file/d/1zJTPwnUdX_1vkcaQ4SLwtF4L-h24oQOg/view?usp=sharing) [Dev](https://drive.google.com/file/d/1pm4pRimapKZDVqnvLpiYFmgBRKdKlJZW/view?usp=sharing) [TRECTest](https://drive.google.com/file/d/19Vp57INLBszrO6qk6eCfcaH3oY-5HDKR/view?usp=sharing) [Leaderboard]|
+| ADORE (STAR) | 0.347 | 0.876 | 0.683 | [Model](https://drive.google.com/drive/folders/1C1GQGfI4UHg99rfRcPYzQxlGZXvtsDfm?usp=sharing) [Train](https://drive.google.com/file/d/1zJTPwnUdX_1vkcaQ4SLwtF4L-h24oQOg/view?usp=sharing) [Dev](https://drive.google.com/file/d/1pm4pRimapKZDVqnvLpiYFmgBRKdKlJZW/view?usp=sharing) [TRECTest](https://drive.google.com/file/d/19Vp57INLBszrO6qk6eCfcaH3oY-5HDKR/view?usp=sharing) [Leaderboard](mailto:jingtaozhan@gmail.com)|
 
 
 | Doc Retrieval | Dev MRR@100  | Dev R@100 | Test NDCG@10 | Files |
@@ -29,7 +29,9 @@ Therefore, we propose two training strategies named a Stable Training Algorithm 
 | STAR     | 0.390 | 0.867 | 0.605 | [Model](https://drive.google.com/drive/folders/18GrqZxeiYFxeMfSs97UxkVHwIhZPVXTc?usp=sharing) [Train](https://drive.google.com/file/d/1Gcp7dbAzpslIIaV_KFkZg4UOkp0ev_eL/view?usp=sharing) [Dev](https://drive.google.com/file/d/17yR6BRLzfW1bxr-VaQ2w2cKpClgcFTej/view?usp=sharing) [TRECTest](https://drive.google.com/file/d/1Mh2BtPYvXRnT2Uz2ZYALZuXQQq3IHApS/view?usp=sharing) |
 | ADORE (Inbatch-Neg) | 0.362 | 0.884 | 0.580 | [Model](https://drive.google.com/drive/folders/1Lvz8aLZyzqm9faCWzoQfJJwbL4vdZu2l?usp=sharing) |
 | ADORE (Rand-Neg) | 0.361 | 0.885 | 0.585 | [Model](https://drive.google.com/drive/folders/1gH5pTfqBkComxPXhFgdbPRD9r1vZWYZO?usp=sharing) |
-| ADORE (STAR) | 0.405 | 0.919 | 0.628 | [Model](https://drive.google.com/drive/folders/1p9FZ8iqqZ9rsfgDzntlNBVKNEf7-2Hih?usp=sharing) [Train](https://drive.google.com/file/d/1XGXdo6LG8VwHvtCbevbvmu3GkwPiV_NC/view?usp=sharing) [Dev](https://drive.google.com/file/d/1vY_q-jzU0CHhOtv_UIYSDkU-l6Kj8fEX/view?usp=sharing) [TRECTest](https://drive.google.com/file/d/1N1ouaMgNdPhjqJMXUBOU5Rg28_T7wapv/view?usp=sharing) [Leaderboard]|
+| ADORE (STAR) | 0.405 | 0.919 | 0.628 | [Model](https://drive.google.com/drive/folders/1p9FZ8iqqZ9rsfgDzntlNBVKNEf7-2Hih?usp=sharing) [Train](https://drive.google.com/file/d/1XGXdo6LG8VwHvtCbevbvmu3GkwPiV_NC/view?usp=sharing) [Dev](https://drive.google.com/file/d/1vY_q-jzU0CHhOtv_UIYSDkU-l6Kj8fEX/view?usp=sharing) [TRECTest](https://drive.google.com/file/d/1N1ouaMgNdPhjqJMXUBOU5Rg28_T7wapv/view?usp=sharing) [Leaderboard](mailto:jingtaozhan@gmail.com)|
+
+If you want to use our first-stage leaderboard runs, [contact me](mailto:jingtaozhan@gmail.com) and I will send you the file.
 
 If any links fail or the files go wrong, please contact me or open a issue.
 
