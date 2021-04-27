@@ -129,10 +129,10 @@ QueriesRanked: 5193
 #####################
 ```
 
-## Convert QID/PID Back
+### Convert QID/PID Back
 Our data preprocessing reassigns new ids for each query and document. Therefore, you may want to convert the ids back. We provide a script for this. 
 
-The following code shows an example to convert STAR's ranking results on the dev passage dataset.
+The following code shows an example to convert ADORE-STAR's ranking results on the dev passage dataset.
 ```bash
 python ./cvt_back.py --input_dir ./data/passage/evaluate/adore-star/ --preprocess_dir ./data/passage/preprocess --output_dir ./data/passage/official_runs/adore-star --mode dev --dataset passage
 python ./msmarco_eval.py ./data/passage/dataset/qrels.dev.small.tsv ./data/passage/official_runs/adore-star/dev.rank.tsv
