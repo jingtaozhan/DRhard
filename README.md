@@ -61,23 +61,89 @@ python preprocess.py --data_type 0; python preprocess.py --data_type 1
 ```
 
 ## Inference
-With our provided trained models, you can easily replicate our reported experimental results.
+With our provided trained models, you can easily replicate our reported experimental results. Note that minor variance may be observed due to environmental difference. 
 
-Instructions are coming soon.
-
+### STAR
+The following codes use the provided STAR model to compute query/passage embeddings and perform similarity search  on the dev set. (You can use `--faiss_gpus` option to use gpus for much faster similarity search.)
 ```bash
 python ./star/inference.py --data_type passage --max_doc_length 256 --mode dev   
+python ./star/inference.py --data_type doc --max_doc_length 512 --mode dev   
+```
+
+Run the following code to evaluate on MSMARCO Passage dataset.
+```bash
 python ./msmarco_eval.py ./data/passage/preprocess/dev-qrel.tsv ./data/passage/evaluate/star/dev.rank.tsv
 ```
+```bash
+Eval Started
+#####################
+MRR @10: 0.3404237731386721
+QueriesRanked: 6980
+#####################
+```
+
+Run the following code to evaluate on MSMARCO Document dataset.
+```bash
+python ./msmarco_eval.py ./data/doc/preprocess/dev-qrel.tsv ./data/doc/evaluate/star/dev.rank.tsv 100
+```
+```bash
+Eval Started
+#####################
+MRR @100: 0.3903422772218344
+QueriesRanked: 5193
+#####################
+```
+
+### ADORE
+
+ADORE computes the query embeddings. The document embeddings are pre-computed by other DR models, like STAR. The following codes use the provided ADORE(STAR) model to compute query embeddings and perform similarity search  on the dev set. (You can use `--faiss_gpus` option to use gpus for much faster similarity search.)
 
 ```bash
 python ./adore/inference.py --model_dir ./data/passage/trained_models/adore-star --output_dir ./data/passage/evaluate/adore-star --preprocess_dir ./data/passage/preprocess --mode dev --dmemmap_path ./data/passage/evaluate/star/passages.memmap
-python ./msmarco_eval.py ./data/passage/preprocess/dev-qrel.tsv ./data/passage/evaluate/adore-star/dev.rank.tsv
+python ./adore/inference.py --model_dir ./data/doc/trained_models/adore-star --output_dir ./data/doc/evaluate/adore-star --preprocess_dir ./data/doc/preprocess --mode dev --dmemmap_path ./data/doc/evaluate/star/passages.memmap
 ```
 
+Evaluate ADORE(STAR) model on dev passage dataset:
 ```bash
-python ./cvt_back.py --input_dir ./data/passage/evaluate/star/ --preprocess_dir ./data/passage/preprocess --output_dir ./data/passage/offcial_runs/star --mode dev
-python ./msmarco_eval.py ./data/passage/dataset/qrels.dev.small.tsv ./data/passage/offcial_runs/star/dev.rank.tsv
+python ./msmarco_eval.py ./data/passage/preprocess/dev-qrel.tsv ./data/passage/evaluate/adore-star/dev.rank.tsv
+```
+You will get
+```bash
+Eval Started
+#####################
+MRR @10: 0.34660697230181425
+QueriesRanked: 6980
+#####################
+```
+
+Evaluate ADORE(STAR) model on dev document dataset:
+```bash
+python ./msmarco_eval.py ./data/doc/preprocess/dev-qrel.tsv ./data/doc/evaluate/adore-star/dev.rank.tsv 100
+```
+You will get
+```bash
+Eval Started
+#####################
+MRR @100: 0.4049777020859768
+QueriesRanked: 5193
+#####################
+```
+
+## Convert QID/PID Back
+Our data preprocessing reassigns new ids for each query and document. Therefore, you may want to convert the ids back. We provide a script for this. 
+
+The following code shows an example to convert STAR's ranking results on the dev passage dataset.
+```bash
+python ./cvt_back.py --input_dir ./data/passage/evaluate/adore-star/ --preprocess_dir ./data/passage/preprocess --output_dir ./data/passage/official_runs/adore-star --mode dev --dataset passage
+python ./msmarco_eval.py ./data/passage/dataset/qrels.dev.small.tsv ./data/passage/official_runs/adore-star/dev.rank.tsv
+```
+You will get
+```bash
+Eval Started
+#####################
+MRR @10: 0.34660697230181425
+QueriesRanked: 6980
+#####################
 ```
 
 ## Train
