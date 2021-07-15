@@ -1,14 +1,12 @@
 # Optimizing Dense Retrieval Model Training with Hard Negatives
 Jingtao Zhan, Jiaxin Mao, Yiqun Liu, Jiafeng Guo, Min Zhang, Shaoping Ma
 
+This repo provides code, retrieval results, and trained models for our SIGIR Full paper [Optimizing Dense Retrieval Model Training with Hard Negatives](https://arxiv.org/abs/2104.08051). The previous version is [Learning To Retrieve: How to Train a Dense Retrieval Model Effectively and Efficiently.](https://arxiv.org/abs/2010.10469)
 
-This repo provides code, retrieval results, and trained models for our paper [Optimizing Dense Retrieval Model Training with Hard Negatives](https://arxiv.org/abs/2104.08051). The previous version is [Learning To Retrieve: How to Train a Dense Retrieval Model Effectively and Efficiently.](https://arxiv.org/abs/2010.10469)
+We achieve very impressive retrieval results on both passage and document retrieval bechmarks. The proposed two algorithms (STAR and ADORE) are very efficient. IMHO, they are well worth trying and most likely improve your retriever's performance by a large margin. 
 
-Ranking has always been one of the top concerns in information retrieval researches. For decades, the lexical matching signal has dominated the ad-hoc retrieval process, but solely using this signal in retrieval may cause the vocabulary mismatch problem. In recent years, with the development of representation learning techniques, many researchers turn to Dense Retrieval (DR) models for better ranking performance. Although several existing DR models have already obtained promising results, their performance improvement heavily relies on the sampling of training examples. Many effective sampling strategies are not efficient enough for practical usage, and for most of them, there still lacks theoretical analysis in how and why performance improvement happens. 
-
-To shed light on these research questions, we theoretically investigate different training strategies for DR models and try to explain why hard negative sampling performs better than random sampling. Through the analysis, we also find that there are many potential risks in static hard negative sampling, which is employed by many existing training methods. 
-
-Therefore, we propose two training strategies named a Stable Training Algorithm for dense Retrieval (STAR) and a query-side training Algorithm for Directly Optimizing Ranking pErformance (ADORE), respectively. STAR improves the stability of DR training process by introducing random negatives. ADORE replaces the widely-adopted static hard negative sampling method with a dynamic one to directly optimize the ranking performance. Experimental results on two publicly available retrieval benchmark datasets show that either strategy gains significant improvements over existing competitive baselines and a combination of them leads to the best performance.
+The following figure shows the pros and cons of different training methods. You can train an effective Dense Retrieval model in three steps. Firstly, warmup your model using random negatives or BM25 top negatives. Secondly, use our proposed STAR to train the query encoder and document encoder. Thirdly, use our proposed ADORE to train the query encoder. 
+![image](./figures/summary.png)
 
 ## Retrieval Results and Trained Models
 
@@ -147,4 +145,4 @@ QueriesRanked: 6980
 ```
 
 ## Train
-Instructions are coming soon.
+Instructions will be ready this weekend (7.18). 
