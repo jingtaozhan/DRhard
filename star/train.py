@@ -94,41 +94,35 @@ class MyTensorBoardCallback(TensorBoardCallback):
 def is_main_process(local_rank):
     return local_rank in [-1, 0]
 
+
 @dataclass
 class DataTrainingArguments:
     max_query_length: int = field() # 24
     max_doc_length: int = field() #  512 for doc and 120 for passage
-    data_dir: str = field() # "./data/passage or doc/preprocess"
+    preprocess_dir: str = field() # "./data/passage or doc/preprocess"
     hardneg_path: str = field() # use prepare_hardneg.py to generate
+
 
 @dataclass
 class ModelArguments:
     init_path: str = field() # please use bm25 warmup model or roberta-base
     gradient_checkpointing: bool = field(default=False)
 
+
 @dataclass
 class MyTrainingArguments(TrainingArguments):
-    output_dir: str = field() # where to output
+    output_dir: str = field(default="./data/passage/star_train/models") # where to output
+    logging_dir: str = field(default="./data/passage/star_train/log")
     padding: bool = field(default=False)
-    optimizer_str: str = field(default="adamw") # or lamb
-    hard_neg: bool = field(default=False)
-    per_query_hard_num: int = field(default=0)
-    rand_neg: bool = field(default=False)
-    overwrite_output_dir: bool = field(default=False)
-
-    do_train: bool = field(default=True, metadata={"help": "Whether to run training."})
-   
-    evaluate_during_training: bool = field(
-        default=False,
-        metadata={"help": "Run evaluation during training at each logging step."},)
-    
+    optimizer_str: str = field(default="lamb") # or lamb
+    overwrite_output_dir: bool = field(default=False)    
     per_device_train_batch_size: int = field(
-        default=64, metadata={"help": "Batch size per GPU/TPU core/CPU for training."})
+        default=256, metadata={"help": "Batch size per GPU/TPU core/CPU for training."})
     gradient_accumulation_steps: int = field(
         default=1,
         metadata={"help": "Number of updates steps to accumulate before performing a backward/update pass."},)
 
-    learning_rate: float = field(default=5e-6, metadata={"help": "The initial learning rate for Adam."})
+    learning_rate: float = field(default=1e-4, metadata={"help": "The initial learning rate for Adam."})
     weight_decay: float = field(default=0.01, metadata={"help": "Weight decay if we apply some."})
     adam_beta1: float = field(default=0.9, metadata={"help": "Beta1 for Adam optimizer"})
     adam_beta2: float = field(default=0.999, metadata={"help": "Beta2 for Adam optimizer"})
@@ -192,61 +186,34 @@ def main():
     set_seed(training_args.seed)
 
     config = RobertaConfig.from_pretrained(
-        model_args.model_name_or_path,
+        model_args.init_path,
         finetuning_task="msmarco",
         gradient_checkpointing=model_args.gradient_checkpointing
     )
     tokenizer = RobertaTokenizer.from_pretrained(
-        model_args.model_name_or_path,
+        model_args.init_path,
         use_fast=False,
     )
     config.gradient_checkpointing = model_args.gradient_checkpointing
     
-    data_args.label_path = os.path.join(data_args.data_dir, "train-qrel.tsv")
+    data_args.label_path = os.path.join(data_args.preprocess_dir, "train-qrel.tsv")
     rel_dict = load_rel(data_args.label_path)
-    if training_args.hard_neg:
-        train_dataset = TrainInbatchWithHardDataset(
-            rel_file=data_args.label_path,
-            rank_file=data_args.hardneg_path,
-            queryids_cache=TextTokenIdsCache(data_dir=data_args.data_dir, prefix="train-query"),
-            docids_cache=TextTokenIdsCache(data_dir=data_args.data_dir, prefix="passages"),
-            max_query_length=data_args.max_query_length,
-            max_doc_length=data_args.max_doc_length,
-            hard_num=training_args.per_query_hard_num
-        )
-        data_collator = triple_get_collate_function(
-            data_args.max_query_length, data_args.max_doc_length,
-            rel_dict=rel_dict, padding=training_args.padding)
-        model_class = RobertaDot_InBatch
-    elif training_args.rand_neg:
-        train_dataset = TrainInbatchWithRandDataset(
-            rel_file=data_args.label_path,
-            rand_num=training_args.per_query_hard_num,
-            queryids_cache=TextTokenIdsCache(data_dir=data_args.data_dir, prefix="train-query"),
-            docids_cache=TextTokenIdsCache(data_dir=data_args.data_dir, prefix="passages"),
-            max_query_length=data_args.max_query_length,
-            max_doc_length=data_args.max_doc_length
-        )
-        data_collator = triple_get_collate_function(
-            data_args.max_query_length, data_args.max_doc_length,
-            rel_dict=rel_dict, padding=training_args.padding)
-        model_class = RobertaDot_Rand
-    else:
-        train_dataset = TrainInbatchDataset(
-            rel_file=data_args.label_path,
-            queryids_cache=TextTokenIdsCache(data_dir=data_args.data_dir, prefix="train-query"),
-            docids_cache=TextTokenIdsCache(data_dir=data_args.data_dir, prefix="passages"),
-            max_query_length=data_args.max_query_length,
-            max_doc_length=data_args.max_doc_length
-        )
-        data_collator = dual_get_collate_function(
-            data_args.max_query_length, data_args.max_doc_length,
-            rel_dict=rel_dict, padding=training_args.padding)
-        model_class = RobertaDot_InBatch
+    train_dataset = TrainInbatchWithHardDataset(
+        rel_file=data_args.label_path,
+        rank_file=data_args.hardneg_path,
+        queryids_cache=TextTokenIdsCache(data_dir=data_args.preprocess_dir, prefix="train-query"),
+        docids_cache=TextTokenIdsCache(data_dir=data_args.preprocess_dir, prefix="passages"),
+        max_query_length=data_args.max_query_length,
+        max_doc_length=data_args.max_doc_length,
+        hard_num=1
+    )
+    data_collator = triple_get_collate_function(
+        data_args.max_query_length, data_args.max_doc_length,
+        rel_dict=rel_dict, padding=training_args.padding)
+    model_class = RobertaDot_InBatch
 
     model = model_class.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        model_args.init_path,
         config=config,
     )
     

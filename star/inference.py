@@ -1,5 +1,6 @@
 # coding=utf-8
 import argparse
+import subprocess
 import sys
 sys.path.append("./")
 import faiss
@@ -60,6 +61,9 @@ def prediction(model, data_collator, args, test_dataset, embedding_memmap, ids_m
 
 
 def query_inference(model, args, embedding_size):
+    if os.path.exists(args.query_memmap_path):
+        print(f"{args.query_memmap_path} exists, skip inference")
+        return
     query_collator = single_get_collate_function(args.max_query_length)
     query_dataset = SequenceDataset(
         ids_cache=TextTokenIdsCache(data_dir=args.preprocess_dir, prefix=f"{args.mode}-query"),
@@ -69,9 +73,13 @@ def query_inference(model, args, embedding_size):
         dtype=np.float32, mode="w+", shape=(len(query_dataset), embedding_size))
     queryids_memmap = np.memmap(args.queryids_memmap_path, 
         dtype=np.int32, mode="w+", shape=(len(query_dataset), ))
-
-    prediction(model, query_collator, args,
-            query_dataset, query_memmap, queryids_memmap, is_query=True)
+    try:
+        prediction(model, query_collator, args,
+                query_dataset, query_memmap, queryids_memmap, is_query=True)
+    except:
+        subprocess.check_call(["rm", args.query_memmap_path])
+        subprocess.check_call(["rm", args.queryids_memmap_path])
+        raise
 
 
 def doc_inference(model, args, embedding_size):
@@ -91,9 +99,14 @@ def doc_inference(model, args, embedding_size):
         dtype=np.float32, mode="w+", shape=(len(doc_dataset), embedding_size))
     docid_memmap = np.memmap(args.docid_memmap_path, 
         dtype=np.int32, mode="w+", shape=(len(doc_dataset), ))
-    prediction(model, doc_collator, args,
-        doc_dataset, doc_memmap, docid_memmap, is_query=False
-    )
+    try:
+        prediction(model, doc_collator, args,
+            doc_dataset, doc_memmap, docid_memmap, is_query=False
+        )
+    except:
+        subprocess.check_call(["rm", args.doc_memmap_path])
+        subprocess.check_call(["rm", args.docid_memmap_path])
+        raise
 
 def main():
     parser = argparse.ArgumentParser()

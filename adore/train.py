@@ -1,11 +1,9 @@
 import sys
 sys.path += ["./"]
 import os
-import re
-import math
+import time
 import torch
 import random
-import time
 import faiss
 import logging
 import argparse
@@ -49,11 +47,11 @@ class TrainQueryDataset(SequenceDataset):
     def __init__(self, queryids_cache, 
             rel_file, max_query_length):
         SequenceDataset.__init__(self, queryids_cache, max_query_length)
-        self.reldict = load_rel(rel_file, direction="query2doc")
+        self.reldict = load_rel(rel_file)
 
     def __getitem__(self, item):
         ret_val = super().__getitem__(item)
-        ret_val['rel_poffsets'] = self.reldict[item]
+        ret_val['rel_ids'] = self.reldict[item]
         return ret_val
 
 
@@ -74,44 +72,26 @@ def get_collate_function(max_seq_length):
             "attention_mask": pack_tensor_2D(attention_mask, default=0, 
                 dtype=torch.int64, length=length),
         }
-        qoffsets = [x['offset'] for x in batch]
-        if "rel_poffsets" not in batch[0]:
-            return data, qoffsets
-        all_rel_poffsets = [x["rel_poffsets"] for x in batch]
-        return data, qoffsets, all_rel_poffsets
+        qids = [x['id'] for x in batch]
+        all_rel_pids = [x["rel_ids"] for x in batch]
+        return data, all_rel_pids
     return collate_function  
-
-
-def metric_weights(y_pred, metric_cut):
-    y_pred = y_pred.view(-1)
-    arr = 1/torch.arange(1, 1+len(y_pred)).float().to(y_pred.device)
-    if metric_cut is not None:
-        arr[metric_cut:] = 0
-    weights = torch.abs(arr.view(-1,1) - arr.view(1, -1))
-    return weights
     
 
 gpu_resources = []
 
-def load_index(passage_embeddings, index_path,  faiss_gpu_index, use_gpu):
+def load_index(passage_embeddings,  faiss_gpu_index):
     dim = passage_embeddings.shape[1]
-    if index_path is None:
-        index = faiss.index_factory(dim, "Flat", faiss.METRIC_INNER_PRODUCT)
-        index.add(passage_embeddings)
-    else:
-        index = faiss.read_index(index_path)
-    if faiss_gpu_index and use_gpu:
+    index = faiss.index_factory(dim, "Flat", faiss.METRIC_INNER_PRODUCT)
+    index.add(passage_embeddings)
+    if faiss_gpu_index:
         if len(faiss_gpu_index) == 1:
             res = faiss.StandardGpuResources()
-            res.setTempMemory(1024*1024*1024)
+            res.setTempMemory(128*1024*1024)
             co = faiss.GpuClonerOptions()
-            if index_path:
-                co.useFloat16 = True
-            else:
-                co.useFloat16 = False
+            co.useFloat16 = False
             index = faiss.index_cpu_to_gpu(res, faiss_gpu_index, index, co)
         else:
-            assert not index_path # Only need one GPU for compressed index
             global gpu_resources
             import torch
             for i in range(torch.cuda.device_count()):
@@ -134,14 +114,15 @@ def load_index(passage_embeddings, index_path,  faiss_gpu_index, use_gpu):
 
 def train(args, model):
     """ Train the model """
-    tb_writer = SummaryWriter(args.log_dir)
+    tb_writer = SummaryWriter(os.path.join(args.log_dir, 
+        time.strftime("%b-%d_%H:%M:%S", time.localtime())))
     passage_embeddings = np.memmap(args.pembed_path, dtype=np.float32, mode="r"
         ).reshape(-1, model.output_embedding_size)
 
     args.train_batch_size = args.per_gpu_batch_size
     train_dataset = TrainQueryDataset(
         TextTokenIdsCache(args.preprocess_dir, "train-query"),
-        os.path.join(args.preprocess_dir, "train-qrel.MSMARCO.tsv"),
+        os.path.join(args.preprocess_dir, "train-qrel.tsv"),
         args.max_seq_length
     )
 
@@ -161,8 +142,7 @@ def train(args, model):
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=args.warmup_steps,
         num_training_steps=t_total)
 
-    index = load_index(passage_embeddings, args.index_path,  
-        args.faiss_gpu_index, args.use_gpu and not args.index_cpu)
+    index = load_index(passage_embeddings, args.faiss_gpu_index)
 
     # Train!
     logger.info("***** Running training *****")
@@ -183,21 +163,21 @@ def train(args, model):
 
     for epoch_idx, _ in enumerate(train_iterator):
         epoch_iterator = tqdm(train_dataloader, desc="Iteration")
-        for step, (batch, _, all_rel_poffsets) in enumerate(epoch_iterator):
+        for step, (batch, all_rel_pids) in enumerate(epoch_iterator):
 
             batch = {k:v.to(args.model_device) for k, v in batch.items()}
             model.train()            
             query_embeddings = model(
-                query_ids=batch["input_ids"],
-                attention_mask_q=batch["attention_mask"], 
+                input_ids=batch["input_ids"],
+                attention_mask=batch["attention_mask"], 
                 is_query=True)
             I_nearest_neighbor = index.search(
                     query_embeddings.detach().cpu().numpy(), args.neg_topk)[1]
             
             loss = 0
-            for retrieve_poffsets, cur_rel_poffsets, qembedding in zip(
-                I_nearest_neighbor, all_rel_poffsets, query_embeddings):
-                target_labels = np.isin(retrieve_poffsets, cur_rel_poffsets).astype(np.int32)
+            for retrieve_pids, cur_rel_pids, qembedding in zip(
+                I_nearest_neighbor, all_rel_pids, query_embeddings):
+                target_labels = np.isin(retrieve_pids, cur_rel_pids).astype(np.int32)
 
                 first_rel_pos = np.where(target_labels[:10])[0] 
                 mrr = 1/(1+first_rel_pos[0]) if len(first_rel_pos) > 0 else 0
@@ -207,14 +187,15 @@ def train(args, model):
                 tr_recall += recall / args.train_batch_size
 
                 if np.sum(target_labels) == 0:
-                    retrieve_poffsets = np.hstack([retrieve_poffsets, cur_rel_poffsets])
-                    target_labels = np.hstack([target_labels, [True]*len(cur_rel_poffsets)])
+                    retrieve_pids = np.hstack([retrieve_pids, cur_rel_pids])
+                    target_labels = np.hstack([target_labels, [True]*len(cur_rel_pids)])
+                    assert len(retrieve_pids) == len(target_labels)
 
                 target_labels = target_labels.reshape(-1, 1)
                 rel_diff = target_labels - target_labels.T
                 pos_pairs = (rel_diff > 0).astype(np.float32)
                 num_pos_pairs = np.sum(pos_pairs, (0, 1))
-
+                
                 assert num_pos_pairs > 0
                 neg_pairs = (rel_diff < 0).astype(np.float32)
                 num_pairs = 2 * num_pos_pairs  # num pos pairs and neg pairs are always the same
@@ -223,18 +204,19 @@ def train(args, model):
                 neg_pairs = torch.FloatTensor(neg_pairs).to(args.model_device)
                 
                 topK_passage_embeddings = torch.FloatTensor(
-                    passage_embeddings[retrieve_poffsets]).to(args.model_device)
+                    passage_embeddings[retrieve_pids]).to(args.model_device)
                 y_pred = (qembedding.unsqueeze(0) * topK_passage_embeddings).sum(-1, keepdim=True)
+                sigma = 1
 
-                C_pos = torch.log(1 + torch.exp(y_pred - y_pred.t()))
-                C_neg = torch.log(1 + torch.exp(y_pred - y_pred.t()))
+                C_pos = torch.log(1 + torch.exp(-sigma * (y_pred - y_pred.t())))
+                C_neg = torch.log(1 + torch.exp(sigma * (y_pred - y_pred.t())))
 
                 C = pos_pairs * C_pos + neg_pairs * C_neg
-                
-                if args.metric is not None:
-                    with torch.no_grad():
-                        weights = metric_weights(y_pred, args.metric_cut)
-                    C = C * weights
+              
+                arr = 1/(torch.arange(1, 1+len(y_pred)).float().to(y_pred.device))
+                arr[args.metric_cut:] = 0
+                weights = torch.abs(arr.view(-1,1) - arr.view(1, -1))
+                C = C * weights
                 cur_loss = torch.sum(C, (0, 1)) / num_pairs
                 loss += cur_loss
             
@@ -275,16 +257,16 @@ def train(args, model):
 def run_parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--metric_cut", type=int, default=None)
+    parser.add_argument("--init_path", type=str, required=True)
     parser.add_argument("--pembed_path", type=str, required=True)
-    parser.add_argument("--index_path", type=str, default=None) # opq index path, optional
-    parser.add_argument("--output_dir", type=str, required=True) 
+    parser.add_argument("--model_save_dir", type=str, required=True)
+    parser.add_argument("--log_dir", type=str, required=True)
     parser.add_argument("--preprocess_dir", type=str, required=True)
     parser.add_argument("--neg_topk", type=int, default=200)
     parser.add_argument("--max_seq_length", type=int, default=64)
     parser.add_argument("--per_gpu_batch_size", type=int, default=32)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--warmup_steps", default=2000, type=int)
-    parser.add_argument("--no_cuda", action='store_true')
     parser.add_argument('--seed', type=int, default=42)
 
     parser.add_argument("--save_steps", type=int, default=5000000) # not use
@@ -298,8 +280,7 @@ def run_parse_args():
 
     parser.add_argument("--model_gpu_index", type=int, default=0)
     parser.add_argument("--faiss_gpu_index", type=int, default=[], nargs="+")
-    parser.add_argument("--index_cpu", action="store_true")
-    parser.add_argument("--faiss_omp_num_threads", type=int, default=16)
+    parser.add_argument("--faiss_omp_num_threads", type=int, default=32)
     args = parser.parse_args()
     faiss.omp_set_num_threads(args.faiss_omp_num_threads)
 
@@ -308,11 +289,8 @@ def run_parse_args():
 
 def main():
     args = run_parse_args()
-    logger.info(args)
-
     # Setup CUDA, GPU 
-    args.use_gpu = torch.cuda.is_available() and not args.no_cuda
-    args.model_device = torch.device(f"cuda:{args.model_gpu_index}" if args.use_gpu else "cpu")
+    args.model_device = torch.device(f"cuda:{args.model_gpu_index}")
     args.n_gpu = torch.cuda.device_count()
 
     # Setup logging
@@ -321,14 +299,14 @@ def main():
     # Set seed
     set_seed(args)
 
-    load_model_path = os.path.join(args.query_output_root, args.previous_qencoder, "model")
-    logger.info(f"load from {load_model_path}")
-    config = RobertaConfig.from_pretrained(load_model_path)
-    model = RobertaDot.from_pretrained(load_model_path, config=config)
+    logger.info(f"load from {args.init_path}")
+    config = RobertaConfig.from_pretrained(args.init_path)
+    model = RobertaDot.from_pretrained(args.init_path, config=config)
 
     model.to(args.model_device)
     logger.info("Training/evaluation parameters %s", args)
-    # Evaluation
+    
+    os.makedirs(args.model_save_dir, exist_ok=True)
     train(args, model)
     
 

@@ -145,4 +145,53 @@ QueriesRanked: 6980
 ```
 
 ## Train
-Instructions will be ready this weekend (7.18). 
+In the following instructions, we show how to replicate our experimental results on MSMARCO Passage Retrieval task. 
+
+### STAR
+We use the same warmup model as ANCE, the most competitive baseline, to enable a fair comparison. Please download [it]() and extract it at `./data/passage/warmup`
+
+Next, we use this warmup model to extract static hard negatives, which will be utilized by STAR. 
+```bash
+python ./star/prepare_hardneg.py \
+--data_type passage \
+--max_query_length 32 \
+--max_doc_length 256 \
+--mode dev \
+--topk 200
+```
+It will automatically use all available gpus to retrieve documents. If all available cuda memory is less than 26GB (the index size), you can add `--not_faiss_cuda` to use CPU for retrieval. 
+
+Run the following command to train the DR model with STAR. In our experiments, we only use one GPU to train.
+```bash
+python ./star/train.py --do_train \
+    --max_query_length 24 \
+    --max_doc_length 120 \
+    --preprocess_dir ./data/passage/preprocess \
+    --hardneg_path ./data/passage/warmup_retrieve/hard.json \
+    --init_path ./data/passage/warmup \
+    --output_dir ./data/passage/star_train/models \
+    --logging_dir ./data/passage/star_train/log \
+    --optimizer_str lamb \
+    --learning_rate 1e-4 \
+    --gradient_checkpointing --fp16
+```
+Although we set number of training epcohs a very large value in the script, it is likely to converge within 50k steps (1.5 days) and you can manually kill the process. Using multiple gpus should speed up a lot, which requires some changes in the codes.
+
+### ADORE
+Now we show how to use ADORE to finetune the query encoder. Here we use our provided STAR checkpoint as the fixed document encoder. You can also use another document encoder. 
+
+The passage embeddings by STAR should be located at `./data/passage/evaluate/star/passages.memmap`. If not, follow the STAR inference procedure as shown above. 
+```bash
+python ./adore/train.py \
+--metric_cut 200 \
+--init_path ./data/passage/trained_models/star \
+--pembed_path ./data/passage/evaluate/star/passages.memmap \
+--model_save_dir ./data/passage/adore_train/models \
+--log_dir ./data/passage/adore_train/log \
+--preprocess_dir ./data/passage/preprocess \
+--model_gpu_index 0 \
+--faiss_gpu_index 1 2 3
+```
+The above command uses the first gpu for encoding, and the 2nd~4th gpu for dense retrieval. You can change the `faiss_gpu_index` values based on your available cuda memory. For example, if you have a 32GB gpu, you can set `model_gpu_index` and `faiss_gpu_index` both to 0 because the CUDA memory is large enough. But if you only have 11GB gpus, three gpus are required for faiss. 
+
+Empirically, ADORE significantly improves retrieval performance after training for only one epoch, which only costs 1 hour if using GPUs to retrieve dynamic hard negatives. 
