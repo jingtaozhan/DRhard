@@ -148,7 +148,7 @@ QueriesRanked: 6980
 In the following instructions, we show how to replicate our experimental results on MSMARCO Passage Retrieval task. 
 
 ### STAR
-We use the same warmup model as ANCE, the most competitive baseline, to enable a fair comparison. Please download [it]() and extract it at `./data/passage/warmup`
+We use the same warmup model as ANCE, the most competitive baseline, to enable a fair comparison. Please download [it](https://drive.google.com/file/d/1URYU1gxNgcuC81jPAev1ksZjMKgQQFoD/view?usp=sharing) and extract it at `./data/passage/warmup`
 
 Next, we use this warmup model to extract static hard negatives, which will be utilized by STAR. 
 ```bash
