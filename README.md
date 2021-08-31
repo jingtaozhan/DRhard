@@ -1,6 +1,8 @@
 # Optimizing Dense Retrieval Model Training with Hard Negatives
 Jingtao Zhan, Jiaxin Mao, Yiqun Liu, Jiafeng Guo, Min Zhang, Shaoping Ma
 
+* 🔥**News: Our full paper, [Jointly Optimizing Query Encoder and Product Quantization to Improve Retrieval Performance](https://arxiv.org/abs/2108.00644)\[[code](https://github.com/jingtaozhan/JPQ)\], was accepted by CIKM'21. It presents JPQ and greatly improves the efficiency of Dense Retrieval. Part of its training foundation lies in this repo (dynamic hard negatives) .**
+
 This repo provides code, retrieval results, and trained models for our SIGIR Full paper [Optimizing Dense Retrieval Model Training with Hard Negatives](https://arxiv.org/abs/2104.08051). The previous version is [Learning To Retrieve: How to Train a Dense Retrieval Model Effectively and Efficiently.](https://arxiv.org/abs/2010.10469)
 
 We achieve very impressive retrieval results on both passage and document retrieval bechmarks. The proposed two algorithms (STAR and ADORE) are very efficient. IMHO, they are well worth trying and most likely improve your retriever's performance by a large margin. 
