@@ -1,5 +1,6 @@
 import enum
 import sys
+
 sys.path += ['./']
 import os
 import torch
@@ -14,12 +15,8 @@ from os.path import isfile, join
 import argparse
 import json
 from tqdm import tqdm
-from transformers import AutoTokenizer
+from star_tokenizer import RobertaTokenizer
 
-import transformers
-if int(transformers.__version__.split(".")[0])>=3:
-    raise RuntimeError("Please use Transformers Libarary version 2 for preprossing because \
-        we find RobertaTokenzier behaves differently between version 2 and 3/4")
 
 def pad_input_ids(input_ids, max_length,
                   pad_on_left=False,
@@ -39,7 +36,7 @@ def pad_input_ids(input_ids, max_length,
 
 
 def tokenize_to_file(args, in_path, output_dir, line_fn, max_length, begin_idx, end_idx):
-    tokenizer = AutoTokenizer.from_pretrained(
+    tokenizer = RobertaTokenizer.from_pretrained(
         args.model_name_or_path, do_lower_case = True, cache_dir=None)
     os.makedirs(output_dir, exist_ok=True)
     data_cnt = end_idx - begin_idx

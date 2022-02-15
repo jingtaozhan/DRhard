@@ -1,4 +1,5 @@
 # coding=utf-8
+import imp
 import sys
 sys.path.append("./")
 import logging
@@ -6,7 +7,7 @@ import os
 from dataclasses import dataclass, field
 import transformers
 from transformers import (
-    RobertaConfig, RobertaTokenizer,
+    RobertaConfig,
     HfArgumentParser,
     TrainingArguments,
     set_seed,
@@ -32,6 +33,7 @@ from transformers import (
     )
 from transformers import AdamW, get_linear_schedule_with_warmup
 from lamb import Lamb
+from star_tokenizer import RobertaTokenizer
 
 logger = logging.Logger(__name__)
 
