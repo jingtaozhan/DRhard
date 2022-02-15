@@ -38,15 +38,13 @@ If you want to use our first-stage leaderboard runs, [contact me](mailto:jingtao
 If any links fail or the files go wrong, please contact me or open a issue.
 
 ## Requirements
-
-To install requirements, run the following commands:
-
-```setup
-git clone git@github.com:jingtaozhan/DRhard.git
-cd DRhard
-python setup.py install
 ```
-However, you need to set up a new python enverionment for data preprocessing (see below).
+torch
+transformers
+faiss-gpu 
+tensorboard
+boto3
+```
 
 ## Data Download
 To download all the needed data, run:
@@ -55,12 +53,13 @@ bash download_data.sh
 ```
 
 ## Data Preprocess
-You need to set up a new environment with `transformers==2.8.0` to tokenize the text. This is because we find the tokenizer behaves differently among versions 2, 3 and 4. To replicate the results in our paper with our provided trained models, it is necessary to use version `2.8.0` for preprocessing. Otherwise, you may need to re-train the DR models. 
-
 Run the following codes.
 ```bash
 python preprocess.py --data_type 0; python preprocess.py --data_type 1
 ```
+
+Note: We utilized Transformers 2.x version to tokenize text when we conducted this research. However, when Transformers library updates to 3.x or 4.x versions, the RobertaTokenizer behaves differently. 
+To support REPRODUCIBILITY, we copy the RobertaTokenizer source codes from 2.x version to [star_tokenizer.py](jpq/star_tokenizer.py). During preprocessing, we use `from star_tokenizer import RobertaTokenizer` instead of `from transformers import RobertaTokenizer`. It is also **necessary** for you to do this if you use our trained model on other datasets. 
 
 ## Inference
 With our provided trained models, you can easily replicate our reported experimental results. Note that minor variance may be observed due to environmental difference. 
